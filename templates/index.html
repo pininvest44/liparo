@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liparo Bulk STK Push</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-mobile-alt"></i>
+                <h1>Liparo Bulk STK Push</h1>
+            </div>
+            <p class="subtitle">Send M-Pesa payment requests to multiple numbers at once</p>
+        </header>
+
+        <!-- Credentials Panel -->
+        <div class="panel credentials-panel">
+            <div class="panel-header">
+                <i class="fas fa-key"></i>
+                <h2>API Credentials</h2>
+                <span class="badge warning">Keep Secure</span>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="secret_key">Secret Key</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="secret_key" placeholder="Your Liparo secret key">
+                        <button type="button" class="toggle-visibility" onclick="toggleVisibility('secret_key')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="passkey">Passkey</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="passkey" placeholder="Your M-Pesa passkey">
+                        <button type="button" class="toggle-visibility" onclick="toggleVisibility('passkey')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="shortcode">Shortcode (PayBill/Till)</label>
+                    <input type="text" id="shortcode" placeholder="e.g., 1234567">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <!-- Left: Input Panel -->
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <i class="fas fa-users"></i>
+                    <h2>Recipients</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('manual')">
+                        <i class="fas fa-keyboard"></i> Manual Entry
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('csv')">
+                        <i class="fas fa-file-csv"></i> CSV Upload
+                    </button>
+                </div>
+
+                <!-- Manual Entry -->
+                <div id="manual-tab" class="tab-content active">
+                    <div class="form-group">
+                        <label for="phone_numbers">
+                            Phone Numbers 
+                            <span class="hint">(one per line, starting with 254)</span>
+                        </label>
+                        <textarea id="phone_numbers" rows="10" placeholder="254712345678
+254723456789
+254734567890"></textarea>
+                        <div class="stats-bar">
+                            <span id="phone-count">0 numbers</span>
+                            <button class="btn-text" onclick="clearNumbers()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CSV Upload -->
+                <div id="csv-tab" class="tab-content">
+                    <div class="upload-zone" id="upload-zone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop your CSV file here</p>
+                        <span>or</span>
+                        <label class="btn btn-outline">
+                            Browse Files
+                            <input type="file" id="csv-file" accept=".csv" hidden onchange="handleFileSelect(event)">
+                        </label>
+                        <p class="file-hint">CSV with phone numbers in any column</p>
+                    </div>
+                    <div id="csv-preview" class="csv-preview hidden">
+                        <div class="preview-header">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="csv-count">0 numbers found</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Common Fields -->
+                <div class="common-fields">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">Amount (KES)</label>
+                            <input type="number" id="amount" placeholder="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="reference">Reference Prefix</label>
+                            <input type="text" id="reference" placeholder="BULK" value="BULK">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-bar">
+                    <button class="btn btn-primary btn-lg" onclick="sendBulkPush()" id="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        Send STK Push
+                    </button>
+                    <button class="btn btn-secondary" onclick="testSingle()">
+                        <i class="fas fa-vial"></i>
+                        Test Single
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Results Panel -->
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <i class="fas fa-chart-bar"></i>
+                    <h2>Results</h2>
+                    <div class="header-actions">
+                        <button class="btn-icon" onclick="refreshTransactions()" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-icon" onclick="exportCSV()" title="Export CSV">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn-icon" onclick="clearHistory()" title="Clear History">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card card-total">
+                        <i class="fas fa-list"></i>
+                        <div>
+                            <span class="number" id="total-count">0</span>
+                            <span class="label">Total</span>
+                        </div>
+                    </div>
+                    <div class="card card-success">
+                        <i class="fas fa-check"></i>
+                        <div>
+                            <span class="number" id="success-count">0</span>
+                            <span class="label">Success</span>
+                        </div>
+                    </div>
+                    <div class="card card-failed">
+                        <i class="fas fa-times"></i>
+                        <div>
+                            <span class="number" id="failed-count">0</span>
+                            <span class="label">Failed</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container hidden" id="progress-container">
+                    <div class="progress-info">
+                        <span id="progress-text">Sending...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Transactions List -->
+                <div class="transactions-list" id="transactions-list">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No transactions yet</p>
+                        <span>Send your first STK push to see results here</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Liparo Bulk STK Push Bot &middot; Built for efficiency</p>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
